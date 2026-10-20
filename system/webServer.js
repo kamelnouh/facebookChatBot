@@ -7,10 +7,17 @@ const memory = require("./memory");
 const logsBuffer = [];
 const MAX_LOGS = 100;
 
+const BOT_NAME = "𝑲𝑨𝑴𝑬𝑳 𝑩𝑶𝑼𝑴𝑹𝑫𝑨𝑺𝑺𝑰 🪻💤";
+const DEVELOPER_NAME = "𝑲𝑨𝑴𝑬𝑳 𝑩𝑶𝑼𝑴𝑹𝑫𝑨𝑺𝑺𝑰";
+
 function pushLog(level, message) {
   const timestamp = new Date().toLocaleTimeString();
+
   logsBuffer.unshift({ timestamp, level, message });
-  if (logsBuffer.length > MAX_LOGS) logsBuffer.pop();
+
+  if (logsBuffer.length > MAX_LOGS) {
+    logsBuffer.pop();
+  }
 }
 
 // Override logger methods to mirror output to dashboard terminal
@@ -20,11 +27,30 @@ const originalWarn = logger.warn;
 const originalError = logger.error;
 const originalCmd = logger.cmd;
 
-logger.info = (msg) => { originalInfo(msg); pushLog("INFO", msg); };
-logger.success = (msg) => { originalSuccess(msg); pushLog("SUCCESS", msg); };
-logger.warn = (msg) => { originalWarn(msg); pushLog("WARN", msg); };
-logger.error = (msg) => { originalError(msg); pushLog("ERROR", msg); };
-logger.cmd = (msg) => { originalCmd(msg); pushLog("COMMAND", msg); };
+logger.info = (msg) => {
+  originalInfo(msg);
+  pushLog("INFO", msg);
+};
+
+logger.success = (msg) => {
+  originalSuccess(msg);
+  pushLog("SUCCESS", msg);
+};
+
+logger.warn = (msg) => {
+  originalWarn(msg);
+  pushLog("WARN", msg);
+};
+
+logger.error = (msg) => {
+  originalError(msg);
+  pushLog("ERROR", msg);
+};
+
+logger.cmd = (msg) => {
+  originalCmd(msg);
+  pushLog("COMMAND", msg);
+};
 
 function startWebServer(port = 3000) {
   const app = express();
@@ -35,10 +61,11 @@ function startWebServer(port = 3000) {
   // API Status & System Metrics
   app.get("/api/status", (req, res) => {
     const memoryUsage = process.memoryUsage();
+
     res.json({
       status: "online",
-      botName: global.GoatBot?.config?.botName || "GoatBot v2",
-      developer: "Gtajisan",
+      botName: global.GoatBot?.config?.botName || BOT_NAME,
+      developer: DEVELOPER_NAME,
       prefix: global.GoatBot?.config?.prefix || "!",
       uptime: process.uptime(),
       commandsCount: global.GoatBot?.commands?.size || 0,
@@ -67,25 +94,30 @@ function startWebServer(port = 3000) {
   // API Registered Commands Suite
   app.get("/api/commands", (req, res) => {
     const cmds = [];
+
     if (global.GoatBot?.commands) {
       for (const [name, module] of global.GoatBot.commands.entries()) {
         cmds.push({
-          name: module.config.name,
+          name: module.config.name || name,
           category: module.config.category || "General",
-          shortDescription: module.config.shortDescription || module.config.description || "No description",
+          shortDescription:
+            module.config.shortDescription ||
+            module.config.description ||
+            "لا يوجد وصف",
           role: module.config.role || 0,
-          author: module.config.author || "Gtajisan",
+          author: module.config.author || DEVELOPER_NAME,
           countDown: module.config.countDown || 0
         });
       }
     }
+
     res.json(cmds);
   });
 
   // API Configuration Settings
   app.get("/api/config", (req, res) => {
     res.json({
-      botName: global.GoatBot?.config?.botName || "GoatBot v2",
+      botName: global.GoatBot?.config?.botName || BOT_NAME,
       prefix: global.GoatBot?.config?.prefix || "!",
       adminUIDs: global.GoatBot?.config?.adminUIDs || [],
       port: port
@@ -93,7 +125,7 @@ function startWebServer(port = 3000) {
   });
 
   app.listen(port, () => {
-    logger.info(`Web Control Dashboard listening live on port ${port}`);
+    logger.info(`Web Control Dashboard listening on port ${port}`);
   }).on("error", (err) => {
     logger.warn(`Web Server port ${port} busy: ${err.message}`);
   });

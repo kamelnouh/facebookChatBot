@@ -1,7 +1,7 @@
 {
   "name": "facebookChatBot",
   "version": "2.0.0",
-  "description": "Modular, high-performance open-source Facebook Messenger Chatbot built on Node.js using GoatBot v2 architecture.",
+  "description": "𝑲𝑨𝑴𝑬𝑳 𝑩𝑶𝑼𝑴𝑹𝑫𝑨𝑺𝑺𝑰 🪻💤 - Facebook Messenger Chatbot built on Node.js using GoatBot v2 architecture.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

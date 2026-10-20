@@ -2,7 +2,7 @@ const chalk = require("chalk");
 const moment = require("moment-timezone");
 
 function getTime() {
-  return moment().tz("Asia/Dhaka").format("YYYY-MM-DD HH:mm:ss");
+  return moment().tz("Africa/Algiers").format("YYYY-MM-DD HH:mm:ss");
 }
 
 const logger = {
@@ -24,19 +24,19 @@ const logger = {
   event: (msg) => {
     console.log(chalk.blue(`[ ${getTime()} ][ EVENT ]`) + ` ${msg}`);
   },
+  
+
   banner: () => {
     console.log(chalk.cyan(`
-======================================================
-  ____             _   ____        _     ____   ___  
- / ___| ___   __ _| |_| __ )  ___ | |_  |_  /  / _ \\ 
-| |  _ / _ \\ / _\` | __|  _ \\ / _ \\| __|  / /  | | | |
-| |_| | (_) | (_| | |_| |_) | (_) | |_  /___|_| |_| |
- \\____|\\___/ \\__,_|\\__|____/ \\___/ \\__||____(_)\\___/ 
-======================================================
-  🚀 GoatBot v2 Architecture | High-Performance Engine
-======================================================
+╔══════════════════════════════════════════════╗
+║                                              ║
+║                 KL BORRX                     ║
+║                                              ║
+║  𝑲𝑨𝑴𝑬𝑳 𝑩𝑶𝑼𝑴𝑹𝑫𝑨𝑺𝑺𝑰 🪻💤            ║
+║                                              ║
+╚══════════════════════════════════════════════╝
 `));
   }
-};
+};⅚ř
 
 module.exports = logger;

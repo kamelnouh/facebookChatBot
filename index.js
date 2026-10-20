@@ -8,9 +8,9 @@ const startWebServer = require("./system/webServer");
 
 // Load Configuration
 let config = {
-  botName: "GoatBot v2",
+  botName: "𝑲𝑨𝑴𝑬𝑳 𝑩𝑶𝑼𝑴𝑹𝑫𝑨𝑺𝑺𝑰 🪻💤",
   prefix: "!",
-  adminUIDs: ["100000000000000"],
+  adminUIDs: ["61593976169222"],
   port: 3000,
   options: {
     listenEvents: true,
@@ -19,17 +19,24 @@ let config = {
 };
 
 const configPath = path.join(__dirname, "config.json");
+
 if (fs.existsSync(configPath)) {
   try {
-    config = { ...config, ...JSON.parse(fs.readFileSync(configPath, "utf8")) };
+    config = {
+      ...config,
+      ...JSON.parse(fs.readFileSync(configPath, "utf8"))
+    };
   } catch (e) {
-    logger.warn("Failed to parse config.json, using defaults.");
+    logger.warn("تعذر قراءة config.json، سيتم استعمال الإعدادات الافتراضية.");
   }
 }
 
+// Ensure the configured bot admin UID is the only privileged admin.
+config.adminUIDs = ["61593976169222"];
+
 const language = require("./system/language");
 
-// Global GoatBot Core Architecture Object
+// Global Bot Core Architecture Object
 global.GoatBot = {
   commands: new Map(),
   events: new Map(),
@@ -41,7 +48,10 @@ global.GoatBot = {
 // Dynamically Load Commands from /scripts/cmds
 function loadCommands() {
   const cmdsPath = path.join(__dirname, "scripts", "cmds");
-  if (!fs.existsSync(cmdsPath)) fs.mkdirSync(cmdsPath, { recursive: true });
+
+  if (!fs.existsSync(cmdsPath)) {
+    fs.mkdirSync(cmdsPath, { recursive: true });
+  }
 
   const files = fs.readdirSync(cmdsPath).filter((f) => f.endsWith(".js"));
   let loadedCount = 0;
@@ -50,25 +60,29 @@ function loadCommands() {
     try {
       const fullPath = path.join(cmdsPath, file);
       delete require.cache[require.resolve(fullPath)];
+
       const cmd = require(fullPath);
 
       if (cmd.config && cmd.config.name) {
         global.GoatBot.commands.set(cmd.config.name.toLowerCase(), cmd);
-        logger.success(`Loaded command: ${cmd.config.name}`);
+        logger.success(`تم تحميل الأمر: ${cmd.config.name}`);
         loadedCount++;
       }
     } catch (err) {
-      logger.error(`Failed to load command ${file}: ${err.message}`);
+      logger.error(`فشل تحميل الأمر ${file}: ${err.message}`);
     }
   });
 
-  logger.info(`Total commands registered: ${loadedCount}`);
+  logger.info(`عدد الأوامر المحمّلة: ${loadedCount}`);
 }
 
 // Dynamically Load Events from /scripts/events
 function loadEvents() {
   const eventsPath = path.join(__dirname, "scripts", "events");
-  if (!fs.existsSync(eventsPath)) fs.mkdirSync(eventsPath, { recursive: true });
+
+  if (!fs.existsSync(eventsPath)) {
+    fs.mkdirSync(eventsPath, { recursive: true });
+  }
 
   const files = fs.readdirSync(eventsPath).filter((f) => f.endsWith(".js"));
   let loadedCount = 0;
@@ -77,19 +91,20 @@ function loadEvents() {
     try {
       const fullPath = path.join(eventsPath, file);
       delete require.cache[require.resolve(fullPath)];
+
       const evt = require(fullPath);
 
       if (evt.config && evt.config.name) {
         global.GoatBot.events.set(evt.config.name.toLowerCase(), evt);
-        logger.success(`Loaded event: ${evt.config.name}`);
+        logger.success(`تم تحميل الحدث: ${evt.config.name}`);
         loadedCount++;
       }
     } catch (err) {
-      logger.error(`Failed to load event ${file}: ${err.message}`);
+      logger.error(`فشل تحميل الحدث ${file}: ${err.message}`);
     }
   });
 
-  logger.info(`Total events registered: ${loadedCount}`);
+  logger.info(`عدد الأحداث المحمّلة: ${loadedCount}`);
 }
 
 // Main Messenger MQTT & Hook Event Dispatcher
@@ -98,79 +113,132 @@ function setupMQTTListener(fcaEngine, api) {
 
   api.listenMqtt(async (err, event) => {
     if (err) {
-      logger.error(`MQTT Listener Error: ${err.message || err}`);
+      logger.error(`خطأ في مستمع MQTT: ${err.message || err}`);
       return;
     }
 
     if (!event) return;
 
-    // Helper message object (routes via humanized safeSendMessage queue)
+    // Message helper
     const messageHelper = {
-      reply: (text, callback) => fcaEngine.safeSendMessage(text, event.threadID, event.messageID),
-      send: (text, callback) => fcaEngine.safeSendMessage(text, event.threadID),
-      unsend: (messageID) => fcaEngine.unsendMessage(messageID)
+      reply: (text, callback) =>
+        fcaEngine.safeSendMessage(text, event.threadID, event.messageID),
+
+      send: (text, callback) =>
+        fcaEngine.safeSendMessage(text, event.threadID),
+
+      unsend: (messageID) =>
+        fcaEngine.unsendMessage(messageID)
     };
 
-    // 1. Execute registered event modules (welcome, leave, antiout)
+    // 1. Execute registered event modules
     for (const [eventName, evtModule] of global.GoatBot.events.entries()) {
       try {
         if (typeof evtModule.onEvent === "function") {
-          await evtModule.onEvent({ api, event, message: messageHelper, db, memory, logger, fcaEngine });
+          await evtModule.onEvent({
+            api,
+            event,
+            message: messageHelper,
+            db,
+            memory,
+            logger,
+            fcaEngine
+          });
         }
       } catch (evtErr) {
-        logger.error(`Error in event [${eventName}]: ${evtErr.message}`);
+        logger.error(`خطأ في الحدث [${eventName}]: ${evtErr.message}`);
       }
     }
 
-    // 2. Handle onReply callbacks if user replied to a bot message
+    // 2. Handle onReply callbacks
     if (event.type === "message_reply" && event.messageReply) {
-      const replyData = global.GoatBot.onReply.get(event.messageReply.messageID);
+      const replyData = global.GoatBot.onReply.get(
+        event.messageReply.messageID
+      );
+
       if (replyData && replyData.commandName) {
         const command = global.GoatBot.commands.get(replyData.commandName);
+
         if (command && typeof command.onReply === "function") {
           try {
-            await command.onReply({ api, event, message: messageHelper, replyData, db, memory, logger, fcaEngine });
+            await command.onReply({
+              api,
+              event,
+              message: messageHelper,
+              replyData,
+              db,
+              memory,
+              logger,
+              fcaEngine
+            });
           } catch (rErr) {
-            logger.error(`Error in onReply [${replyData.commandName}]: ${rErr.message}`);
+            logger.error(
+              `خطأ في الرد على الأمر [${replyData.commandName}]: ${rErr.message}`
+            );
           }
         }
       }
     }
 
-    // 3. Execute onChat hooks across all modules (for conversation memory & auto AI responses)
+    // 3. Execute onChat hooks
     for (const [cmdName, cmdModule] of global.GoatBot.commands.entries()) {
       if (typeof cmdModule.onChat === "function") {
         try {
-          await cmdModule.onChat({ api, event, message: messageHelper, db, memory, logger, fcaEngine });
+          await cmdModule.onChat({
+            api,
+            event,
+            message: messageHelper,
+            db,
+            memory,
+            logger,
+            fcaEngine
+          });
         } catch (chatErr) {
-          logger.error(`Error in onChat [${cmdName}]: ${chatErr.message}`);
+          logger.error(`خطأ في onChat [${cmdName}]: ${chatErr.message}`);
         }
       }
     }
 
     // 4. Process Prefixed Commands
-    if ((event.type === "message" || event.type === "message_reply") && event.body) {
+    if (
+      (event.type === "message" || event.type === "message_reply") &&
+      event.body
+    ) {
       try {
-        const threadPrefix = db.getThreadPrefix(event.threadID, global.GoatBot.config.prefix);
+        const threadPrefix = db.getThreadPrefix(
+          event.threadID,
+          global.GoatBot.config.prefix
+        );
+
         const bodyText = event.body.trim();
 
         if (!bodyText.startsWith(threadPrefix)) return;
 
-        const args = bodyText.slice(threadPrefix.length).trim().split(/ +/);
-        const commandName = args.shift().toLowerCase();
+        const args = bodyText
+          .slice(threadPrefix.length)
+          .trim()
+          .split(/ +/);
 
+        const commandName = args.shift().toLowerCase();
         const command = global.GoatBot.commands.get(commandName);
+
         if (!command) return;
 
-        // Check Permissions (0: Everyone, 1: Group Admin, 2: Bot Admin)
-        const isBotAdmin = global.GoatBot.config.adminUIDs.includes(event.senderID);
+        // Only the configured UID is a bot admin.
+        const isBotAdmin =
+          String(event.senderID) === "61593976169222";
+
         const roleRequired = command.config.role || 0;
 
         if (roleRequired === 2 && !isBotAdmin) {
-          return messageHelper.reply("⛔ Permission Denied: Only Bot Admins can use this command.");
+          return messageHelper.reply(
+            "⛔ هذا الأمر مخصص لمسؤول البوت فقط."
+          );
         }
 
-        logger.cmd(`[ Thread ${event.threadID} ][ User ${event.senderID} ] Executed: !${commandName}`);
+        logger.cmd(
+          `[ المجموعة ${event.threadID} ][ المستخدم ${event.senderID} ] الأمر: ${threadPrefix}${commandName}`
+        );
 
         // Run command onStart hook
         if (typeof command.onStart === "function") {
@@ -187,8 +255,13 @@ function setupMQTTListener(fcaEngine, api) {
           });
         }
       } catch (execErr) {
-        logger.error(`Command Execution Error: ${execErr.stack || execErr.message}`);
-        messageHelper.reply(`❌ Execution Error: ${execErr.message}`);
+        logger.error(
+          `خطأ في تنفيذ الأمر: ${execErr.stack || execErr.message}`
+        );
+
+        messageHelper.reply(
+          `❌ وقع خطأ أثناء تنفيذ الأمر: ${execErr.message}`
+        );
       }
     }
   });
@@ -205,27 +278,32 @@ async function startBot() {
   loadCommands();
   loadEvents();
 
-  // 3. Initialize Rebuilt FCA Engine with Anti-Ban Queue
+  // 3. Initialize FCA Engine
+  // Login mechanism and appState.json remain unchanged.
   const fcaEngine = new FCAEngine("appState.json");
 
   try {
     const api = await fcaEngine.init();
+
     if (api) {
-      logger.success("🚀 GoatBot v2 x Floppa-Chatbot Fusion Engine is online and listening!");
+      logger.success(
+        "🚀 𝑲𝑨𝑴𝑬𝑳 𝑩𝑶𝑼𝑴𝑹𝑫𝑨𝑺𝑺𝑰 🪻💤 راه خدام ومتصل!"
+      );
+
       setupMQTTListener(fcaEngine, api);
     }
   } catch (loginErr) {
-    logger.error(`Initialization failed: ${loginErr.message}`);
+    logger.error(`فشل تشغيل البوت: ${loginErr.message}`);
   }
 }
 
 // Global Exception Shields
 process.on("uncaughtException", (err) => {
-  logger.error(`Uncaught Exception: ${err.message}`);
+  logger.error(`خطأ غير معالج: ${err.message}`);
 });
 
 process.on("unhandledRejection", (reason) => {
-  logger.error(`Unhandled Promise Rejection: ${reason}`);
+  logger.error(`رفض Promise غير معالج: ${reason}`);
 });
 
 // Launch
